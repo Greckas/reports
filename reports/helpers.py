@@ -253,10 +253,8 @@ def get_send_args_parser():
         help='Recipients'
     )
     parser.add_argument(
-        '-s',
-        '--test',
+        '--test-mail',
         dest='test',
-        action='test@gmail.com',
         help='Send email test'
     )
 

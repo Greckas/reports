@@ -72,7 +72,7 @@ class AWSClient(object):
         if len(operations) == 2:
             entry['type'] = ' and '.join(operations)
         else:
-            entry['type'] = ', '.join(operations)
+            entry['type'] = ', '.join(operations) 
         return entry
 
     def send_files(self, files, timestamp=''):
@@ -116,31 +116,44 @@ class AWSClient(object):
         smtpserver.ehlo()
         smtpserver.login(user, password)
 
-        if email_test == True:
-            try:
-                for context in self.links:
-                    recipients = self.emails_to[context['test']]
-                    msg = MIMEText(self._render_email(context), 'html', 'utf-8')
-                    msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
-                    msg['From'] = self.verified_email
-                    msg['To'] = COMMASPACE.join(recipients)
-                    if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
-                        smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
-            finally:
-                smtpserver.close()
-        else:
 
-            try:
-                for context in self.links:
-                    recipients = self.emails_to[context['broker']]
-                    msg = MIMEText(self._render_email(context), 'html', 'utf-8')
-                    msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
-                    msg['From'] = self.verified_email
-                    msg['To'] = COMMASPACE.join(recipients)
-                    if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
-                        smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
-            finally:
-                smtpserver.close()
+        try:
+            for context in self.links:
+                recipients = self.emails_to[context['broker']]
+                msg = MIMEText(self._render_email(context), 'html', 'utf-8')
+                msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
+                msg['From'] = self.verified_email
+                msg['To'] = COMMASPACE.join(recipients)
+                if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
+                    smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
+        finally:
+            smtpserver.close()
+
+    def sent_test(self,email):
+        cred = self._update_credentials(self.ses_cred_path)
+        user = cred.get('AWS_ACCESS_KEY_ID')
+        password = cred.get('AWS_SECRET_ACCESS_KEY')
+        smtpserver = smtplib.SMTP(self.smtp_server, self.smtp_port)
+
+        smtpserver.ehlo()
+        smtpserver.starttls()
+        smtpserver.ehlo()
+        smtpserver.login(user, password)
+
+
+        try:
+            for context in self.links:
+                recipients = email
+                msg = MIMEText(self._render_email(context), 'html', 'utf-8')
+                msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
+                msg['From'] = self.verified_email
+                msg['To'] = recipients
+                
+                if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
+                    smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
+        finally:
+            smtpserver.close()
+
 
     def send_from_timestamp(self, timestamp):
         cred = self._update_credentials(self.s3_cred_path)
@@ -169,6 +182,9 @@ def run():
     if args.brokers:
         client.brokers = args.brokers
 
+    if args.test-mail:
+        client.sent_test(email)
+
     if args.exists:
         if not args.timestamp:
             print "Timestamp is required"
@@ -179,8 +195,7 @@ def run():
     for broker in client.links:
         if (not client.brokers) or (client.brokers and broker['broker'] in client.brokers):
             print "Url for {} ==> {}\n".format(broker['broker'], broker['link'])
-    if args.test:
-        self.email_test=True
+    
     if args.notify:
         client.send_emails()
 
