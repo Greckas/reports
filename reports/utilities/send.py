@@ -41,6 +41,7 @@ class AWSClient(object):
                 loader=PackageLoader('reports', 'templates'))
         self.links = []
         self._brokers = []
+        self.email_test=False
 
     @property
     def brokers(self):

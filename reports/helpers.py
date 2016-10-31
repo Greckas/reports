@@ -255,7 +255,8 @@ def get_send_args_parser():
     parser.add_argument(
         '-s',
         '--test',
-        action='store_true',
+        dest='test',
+        action='test@gmail.com',
         help='Send email test'
     )
 
