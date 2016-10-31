@@ -34,6 +34,7 @@ class AWSClient(object):
         self.ses_cred_path = self.config.get('aws', 'ses_pass_path')
         self.smtp_server = self.config.get('email', 'smtp_server')
         self.smtp_port = self.config.get('email', 'smtp_port')
+        self.email_test = self.config.get('email', default=False)
         self.verified_email = self.config.get('email', 'verified_email')
         self.subject = self.config.get('email', 'subject')
         self.emails_to = dict((key, field.split(',')) for key, field in self.config.items('brokers_emails'))
@@ -164,6 +165,8 @@ def run():
     for broker in client.links:
         if (not client.brokers) or (client.brokers and broker['broker'] in client.brokers):
             print "Url for {} ==> {}\n".format(broker['broker'], broker['link'])
+    if args.test:
+        self.email_test=True
     if args.notify:
         client.send_emails()
 
