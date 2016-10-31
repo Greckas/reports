@@ -34,7 +34,6 @@ class AWSClient(object):
         self.ses_cred_path = self.config.get('aws', 'ses_pass_path')
         self.smtp_server = self.config.get('email', 'smtp_server')
         self.smtp_port = self.config.get('email', 'smtp_port')
-        self.email_test = self.config.get('email', default=False)
         self.verified_email = self.config.get('email', 'verified_email')
         self.subject = self.config.get('email', 'subject')
         self.emails_to = dict((key, field.split(',')) for key, field in self.config.items('brokers_emails'))
@@ -116,17 +115,31 @@ class AWSClient(object):
         smtpserver.ehlo()
         smtpserver.login(user, password)
 
-        try:
-            for context in self.links:
-                recipients = self.emails_to[context['broker']]
-                msg = MIMEText(self._render_email(context), 'html', 'utf-8')
-                msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
-                msg['From'] = self.verified_email
-                msg['To'] = COMMASPACE.join(recipients)
-                if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
-                    smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
-        finally:
-            smtpserver.close()
+        if email_test == True:
+            try:
+                for context in self.links:
+                    recipients = self.emails_to[context['test']]
+                    msg = MIMEText(self._render_email(context), 'html', 'utf-8')
+                    msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
+                    msg['From'] = self.verified_email
+                    msg['To'] = COMMASPACE.join(recipients)
+                    if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
+                        smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
+            finally:
+                smtpserver.close()
+        else:
+
+            try:
+                for context in self.links:
+                    recipients = self.emails_to[context['broker']]
+                    msg = MIMEText(self._render_email(context), 'html', 'utf-8')
+                    msg['Subject'] = 'Prozorro Billing: {} {} ({})'.format(context['broker'], context['type'], context['period'])
+                    msg['From'] = self.verified_email
+                    msg['To'] = COMMASPACE.join(recipients)
+                    if (not self.brokers) or (self.brokers and context['broker'] in self.brokers):
+                        smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
+            finally:
+                smtpserver.close()
 
     def send_from_timestamp(self, timestamp):
         cred = self._update_credentials(self.s3_cred_path)
