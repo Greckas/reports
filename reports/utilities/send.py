@@ -41,7 +41,6 @@ class AWSClient(object):
                 loader=PackageLoader('reports', 'templates'))
         self.links = []
         self._brokers = []
-        self.email_test=False
 
     @property
     def brokers(self):
@@ -195,7 +194,6 @@ def run():
     for broker in client.links:
         if (not client.brokers) or (client.brokers and broker['broker'] in client.brokers):
             print "Url for {} ==> {}\n".format(broker['broker'], broker['link'])
-    
     if args.notify:
         client.send_emails()
 
