@@ -71,7 +71,7 @@ class AWSClient(object):
         if len(operations) == 2:
             entry['type'] = ' and '.join(operations)
         else:
-            entry['type'] = ', '.join(operations) 
+            entry['type'] = ', '.join(operations)
         return entry
 
     def send_files(self, files, timestamp=''):
@@ -115,7 +115,6 @@ class AWSClient(object):
         smtpserver.ehlo()
         smtpserver.login(user, password)
 
-
         try:
             for context in self.links:
                 recipients = self.emails_to[context['broker']]
@@ -138,7 +137,6 @@ class AWSClient(object):
         smtpserver.starttls()
         smtpserver.ehlo()
         smtpserver.login(user, password)
-
 
         try:
             for context in self.links:
