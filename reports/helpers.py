@@ -252,5 +252,11 @@ def get_send_args_parser():
         nargs='+',
         help='Recipients'
     )
+    parser.add_argument(
+        '--test_mail',
+        nargs='+',
+        dest='test',
+        help='Send email test'
+    )
 
     return parser
