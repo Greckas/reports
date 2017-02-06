@@ -21,14 +21,18 @@ ARGS = [
 
 class Config(object):
 
-    def __init__(self, path):
-        if not os.path.exists(path):
-            raise ValueError("Config file does not exists."
-                             "Please provide one")
+    def __init__(self, config):
         for key in ARGS:
             setattr(self, key, '')
-        with open(path, 'r') as yaml_in:
-            self.config = yaml.load(yaml_in)
+
+        if isinstance(config, dict):
+            self.config = config
+            for key in ARGS:
+                if key in config:
+                    setattr(self, key, config[key])
+        else:
+            with open(config, 'r') as yaml_in:
+                self.config = yaml.load(yaml_in)
         self.module = ''
 
     @classmethod
