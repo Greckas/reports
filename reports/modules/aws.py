@@ -83,10 +83,11 @@ class AWSClient(object):
                 logger.info("Error during uploading {}. Error: {}".format(f, e))
 
     def send_emails(self, email=None):
+        if getattr(self, 'not_notify', False):
+            return
         cred = self.vault.ses()
         user = cred.get('AWS_ACCESS_KEY_ID')
         password = cred.get('AWS_SECRET_ACCESS_KEY')
-        import pdb;pdb.set_trace()
         smtpserver = smtplib.SMTP(self.config.smtp_server,
                                   str(self.config.smtp_port))
 
@@ -96,18 +97,15 @@ class AWSClient(object):
         smtpserver.login(user, password)
         try:
             for context in self.links:
-                recipients = self.config.emails[context['broker']]
+                recipients = self.config.emails[context['broker']] if email is None else email
+                if not isinstance(recipients, list):
+                    recipients = [recipients]
                 msg = MIMEText(self._render_email(context), 'html', 'utf-8')
                 msg['Subject'] = Header('Rialto Billing: {} {} ({})'.format(context['broker'], context['type'], context['period']), 'utf-8')
                 msg['From'] = self.config.verified_email
-                if email:
-                    msg['To'] = COMMASPACE.join(email)
-                    if (not self.config.notify_brokers) or (self.config.notify_brokers and context['broker'] in self.config.notify_brokers):
-                        smtpserver.sendmail(self.verified_email, email,  msg.as_string())
-                else:
-                    msg['To'] = COMMASPACE.join(recipients)
-                    if (not self.config.notify_brokers) or (self.config.notify_brokers and context['broker'] in self.config.notify_brokers):
-                        smtpserver.sendmail(self.verified_email, recipients,  msg.as_string())
+                msg['To'] = COMMASPACE.join(recipients)
+                if (not self.config.notify_brokers) or (self.config.notify_brokers and context['broker'] in self.config.notify_brokers):
+                    smtpserver.sendmail(self.config.verified_email, recipients,  msg.as_string())
         finally:
             smtpserver.close()
 
@@ -120,11 +118,15 @@ class AWSClient(object):
             aws_secret_access_key=cred.get('AWS_SECRET_ACCESS_KEY'),
             region_name=cred.get('AWS_DEFAULT_REGION')
         )
-        for item in s3.list_objects(Bucket=self.config.bucket, Prefix=timestamp)['Contents']:
-            entry = self.get_entry(os.path.basename(item['Key']))
-            entry['link'] = s3.generate_presigned_url(
-                    'get_object',
-                    Params={'Bucket': self.config.bucket, 'Key': item['Key']},
-                    ExpiresIn=self.config.expires,
-                )
-            self.links.append(entry)
+        try:
+            for item in s3.list_objects(Bucket=self.config.bucket, Prefix=timestamp)['Contents']:
+                entry = self.get_entry(os.path.basename(item['Key']))
+                entry['link'] = s3.generate_presigned_url(
+                        'get_object',
+                        Params={'Bucket': self.config.bucket, 'Key': item['Key']},
+                        ExpiresIn=self.config.expires,
+                    )
+                self.links.append(entry)
+        except Exception as e:
+            logger.fatal("Error: {}".format(e))
+            self.not_notify = True

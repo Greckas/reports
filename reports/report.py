@@ -4,6 +4,7 @@ import argparse
 import csv
 import pyminizip
 from datetime import date
+from datetime import datetime
 from logging import getLogger
 from logging.config import dictConfig
 from reports.modules import (
@@ -44,7 +45,8 @@ ARGS = [
     'timestamp',
     'include',
     'timezone',
-    'include_cancelled'
+    'include_cancelled',
+    'to_now'
 ]
 logger = getLogger()
 
@@ -85,6 +87,7 @@ class ReportConfig(object):
         for param in ['period', 'timezone', 'include_cancelled']:
             setattr(config, param, getattr(self, param))
         config.broker = broker
+        config.include_cancelled = self.include_cancelled
         config.period = [convert_date(self.start_date, from_tz='UTC', to_tz='Europe/Kiev'),
                          convert_date(self.end_date, from_tz='UTC', to_tz='Europe/Kiev')]
         return config
@@ -104,8 +107,10 @@ class ReportConfig(object):
 
     @property
     def end_date(self):
-        if len(self.period) < 2:
+        if len(self.period) < 2 and not self.to_now:
             return date.today().replace(day=1).strftime('%Y-%m-%d')
+        if len(self.period) < 2 and self.to_now:
+            return date.today().strftime('%Y-%m-%d')
         return self.period[1].split('T')[0]
 
     @classmethod
@@ -140,6 +145,7 @@ class Report(object):
             'refunds': Refunds,
         }
         self.aws = AWSClient(config, vault=self.vault)
+        self.run_time = datetime.now().strftime('%Y-%m-%d/%H-%M-%S-%f')
 
     def generate_for_broker(self, broker):
         config = self.config.produce_module_config(broker)
@@ -155,7 +161,7 @@ class Report(object):
                 as part_csv:
             writer = csv.writer(part_csv)
             writer.writerow(bids_headers)
-            for broker in self.config.brokers:
+            for broker in [b for b in self.config.brokers if b != 'all']:
                 name = '{}@{}--{}-bids.csv'.format(broker,
                                                    self.config.start_date,
                                                    self.config.end_date)
@@ -185,7 +191,7 @@ class Report(object):
                                            self.config.end_date,
                                            name))
                           for name in ['tenders', 'refunds']
-                          for broker in self.config.brokers])
+                          for broker in self.config.brokers if broker != 'all'])
 
     def create_all_bids_archive(self):
         zname = 'all@{}--{}-bids.zip'.format(
@@ -201,14 +207,14 @@ class Report(object):
                              broker,
                              self.config.start_date,
                              self.config.end_date))
-            for broker in self.config.brokers
+            for broker in self.config.brokers if broker != 'all'
         ]
 
         self._zip(zname, files, self.vault.broker_password('all'))
 
     def create_brokers_archives(self):
 
-        for broker in self.config.brokers:
+        for broker in [b for b in self.config.brokers if b != 'all']:
             zip_name = '{}@{}--{}-{}.zip'.format(broker,
                                                  self.config.start_date,
                                                  self.config.end_date,
@@ -240,7 +246,7 @@ class Report(object):
                                               self.config.end_date,
                                               '-'.join(self.config.include))
                 ]
-            self.aws.send_files([os.path.join(self.config.work_dir, f) for f in files])
+            self.aws.send_files([os.path.join(self.config.work_dir, f) for f in files], timestamp=self.run_time)
 
     def clean_up(self):
         files = [
@@ -250,7 +256,7 @@ class Report(object):
                                                    self.config.end_date,
                                                    op))
             for op in self.config.include
-            for broker in self.config.brokers
+            for broker in self.config.brokers if broker != 'all'
         ] + [
             os.path.join(self.config.work_dir,
                          'all@{}--{}-bids.csv'.format(self.config.start_date,
@@ -259,15 +265,19 @@ class Report(object):
         map(os.remove, files)
 
     def run(self):
-        for broker in self.config.brokers:
-            self.generate_for_broker(broker)
-        self.create_all_bids()
-        self.create_tenders_archive()
-        self.create_brokers_archives()
-        self.create_all_bids_archive()
-        self.upload_files()
-        self.aws.send_emails()
-        self.clean_up()
+        if self.config.timestamp:
+            self.aws.send_from_timestamp(self.config.timestamp)
+        else:
+            for broker in [b for b in self.config.brokers if b != 'all']:
+                self.generate_for_broker(broker)
+            self.create_all_bids()
+            self.create_tenders_archive()
+            self.create_brokers_archives()
+            self.create_all_bids_archive()
+            self.upload_files()
+            self.clean_up()
+        if self.config.notify:
+            self.aws.send_emails()
 
 
 def run():
@@ -276,6 +286,8 @@ def run():
     parser.add_argument('--type', nargs='+', default=['all'])
     parser.add_argument('--period', nargs='+', default=[])
     parser.add_argument('--notify', action='store_true', default=False)
+    parser.add_argument('--to-now', action='store_true', default=False)
+    parser.add_argument('--include-cancelled', action='store_true', default=False)
     parser.add_argument('--notify-brokers', nargs='+')
     parser.add_argument('--brokers', nargs='+')
     parser.add_argument('--timestamp')
