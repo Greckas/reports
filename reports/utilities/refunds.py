@@ -67,18 +67,13 @@ class RefundsUtility(BaseTendersUtility):
                 c[i] += 1
 
     def rows(self):
+        self._rows = [self.counter, self.config.payments]
         for resp in self.response:
             self.row(resp['value'])
-
-        for row in [
-            self.payments,
-            self.counter,
-            [c * v for c, v in zip(self.counter, self.payments)],
-            ['' for _ in range(5)],
-            self.payments_before,
-            self.counter_before,
-            [c * v for c, v in zip(self.counter_before, self.payments_before)],
-        ]:
+        self._rows.append(
+            [c * v for c, v in zip(self.counter, self.config.payments)]
+        )
+        for row in self._rows:
             yield row
 
 

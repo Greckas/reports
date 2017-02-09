@@ -12,9 +12,7 @@ class InvoicesUtility(BaseBidsUtility):
         self.headers = thresholds_headers(
             self.config.thresholds
         )
-
-        self.counter = [0 for _ in range(0, 5)]
-        self.counter_before = [0 for _ in range(0, 5)]
+        self.counter = [0 for _ in self.config.payments]
 
     def row(self, record):
         value = float(record.get("value", 0))
