@@ -4,7 +4,7 @@ import couchdb
 import os.path
 from reports.config import Config
 from copy import copy
-from reports.utilities.invoices import InvoicesUtility
+from reports.modules.bids import Invoices
 from reports.tests.utils import(
     get_mock_parser,
     test_data,
@@ -39,7 +39,7 @@ test_award_period = '2016-04-17T13:32:25.774673+02:00'
 def ut(request):    
     mock_parse = get_mock_parser()
     with mock.patch('argparse.ArgumentParser.parse_args', mock_parse):
-        utility = InvoicesUtility()
+        utility = Invoices()
     ut.counter = [0 for _ in utility.config.payments]
     return utility
 

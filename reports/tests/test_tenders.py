@@ -3,7 +3,7 @@ import couchdb
 import mock
 import os.path
 from reports.config import Config
-from reports.utilities.tenders import TendersUtility
+from reports.modules.tenders import Tenders
 from copy import copy
 from reports.tests.utils import(
     get_mock_parser,
@@ -93,7 +93,7 @@ def ut(request):
     type(mock_parse.return_value).kind = mock.PropertyMock(
         return_value=['general'])
     with mock.patch('argparse.ArgumentParser.parse_args', mock_parse):
-        utility = TendersUtility()
+        utility = Tenders()
     return utility
 
 def test_tenders_view_invalid_date(db, ut):

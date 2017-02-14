@@ -8,7 +8,7 @@ from reports.config import Config
 from reports.helpers import create_db_url
 
 
-test_config = os.path.join(os.path.dirname(__file__), 'tests.ini')
+test_config = os.path.join(os.path.dirname(__file__), 'tests.yaml')
 test_data = {
     "procurementMethod": "open",
     "status": "complete",
@@ -83,24 +83,26 @@ def assert_csv(csv, name , headers, rows):
         ))
 
 
-def assertLen(count, data, utility):  
+def assertLen(count, data, utility):
+    ll = []  
     doc = copy(test_data)
     doc.update(data)
     utility.db.save(doc)
-    utility.get_response()
-    utility.response = list(utility.response)
-    assert count == len(utility.response)
+    utility.response
+    for x in utility.response:
+        ll.append(x)
+    assert count == len(ll)
 
 
 @pytest.fixture(scope='function')
 def db(request):
     conf = Config(test_config)
-    host = conf.get_option('db', 'host')
-    port = conf.get_option('db', 'port')
-    user = conf.get_option('admin', 'username')
-    passwd = conf.get_option('admin', 'password')
+    host = conf.config['db']['host']
+    port = conf.config['db']['port']
+    user = conf.config['db']['admin']['name']
+    passwd = conf.config['db']['admin']['password']
 
-    db_name = conf.get_option('db', 'name')
+    db_name = conf.config['db']['name']
     server = couchdb.Server(
         create_db_url(host, port, user, passwd)
     )

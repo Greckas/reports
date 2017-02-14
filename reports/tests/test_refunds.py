@@ -3,7 +3,7 @@ import couchdb
 import mock
 import os.path
 from reports.config import Config
-from reports.utilities.refunds import RefundsUtility
+from reports.modules.tenders import Refunds
 from copy import copy
 from reports.tests.utils import(
     get_mock_parser,
@@ -45,7 +45,7 @@ def ut(request):
     type(mock_parse.return_value).kind = mock.PropertyMock(
         return_value=['general'])
     with mock.patch('argparse.ArgumentParser.parse_args', mock_parse):
-        utility = RefundsUtility()
+        utility = Refunds()
     ut.counter = [0 for _ in utility.config.payments]
     return utility
 
