@@ -1308,7 +1308,7 @@ def test_bids_view_period(db, ut):
     assert 2 == len(ll)
 
 def test_bids_view_period_edge_limit_check(db, ut):
-    ut.owner = 'test'
+    ut.config.broker = 'test'
     data = {
         "_id": "10028cddd23540e5b6abb9efd2756de1",
         "awardPeriod": {
@@ -1388,9 +1388,12 @@ def test_bids_view_period_edge_limit_check(db, ut):
     doc = copy(test_data)
     doc.update(data)
     ut.db.save(doc)
-
-    ut.start_date = "2016-11-01T15:00:00"
-    ut.end_date = "2016-12-01T15:00:00"
+    ut.config.period = [
+    "2016-11-01T15:00:00",
+    "2016-12-01T15:00:00"
+    ]
+    #ut.start_date = 
+    #ut.end_date = 
     ll = []
     for x in ut.response:
         ll.append(x)
